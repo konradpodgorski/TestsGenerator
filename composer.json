@@ -1,0 +1,29 @@
+{
+    "name": "ee/testsgenerator-bundle",
+    "type": "library",
+    "description": "test generator",
+    "keywords": ["test","phpunit"],
+    "homepage": "http://laboratorium.ee",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Piotr Antosik",
+            "email": "mail@piotrantosik.com",
+            "homepage": "http://piotrantosik.com",
+            "role": "Developer"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=5.3.3",
+        "symfony/console": ">= 2.1.0",
+        "symfony/finder": ">= 2.1.0",
+        "symfony/framework-bundle": ">= 2.1.0"
+    },
+    "require-dev": {
+    },
+    "autoload": {
+        "psr-0": { "EE\\TestGeneratorBundle": "" }
+    },
+    "target-dir": "EE/TestGeneratorBundle"
+}

@@ -1,0 +1,71 @@
+{% autoescape false %}
+<?php
+
+namespace {{ testClassNamespace }};
+
+use {{ fileClassNamespace }}\{{ fileClass }};
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+
+class {{ testClassName }} extends WebTestCase
+{
+
+    /**
+     * @var {{ fileClass }}
+     */
+    protected $object;
+
+    {% if insertEm is defined %}
+/**
+     * @var \Doctrine\ORM\EntityManager
+     */
+    private $em;
+    {% endif %}
+
+    /**
+     * Sets up the fixture, for example, opens a network connection.
+     * This method is called before a test is executed.
+     */
+    protected function setUp()
+    {
+
+    {% if classConstructorHasParm is defined %}
+    {% if constructorParameters|length > 0 %}
+/**
+        * Parameters:
+    {% for paramter in constructorParameters %}
+    * ${{ paramter.name }}
+    {% endfor %}
+    */
+    {% endif %}
+    $this->object = $this->getMock('{{ fileClass }}');
+    {% else %}
+    $this->object = new {{ fileClass }};
+    {% endif %}
+    {% if insertEm is defined %}
+static::$kernel = static::createKernel();
+        static::$kernel->boot();
+        $this->em = static::$kernel->getContainer()
+            ->get('doctrine')
+            ->getManager()
+        ;
+    {% endif %}
+}
+
+    /**
+    * Tears down the fixture, for example, closes a network connection.
+    * This method is called after a test is executed.
+    */
+    protected function tearDown()
+    {
+        parent::tearDown();
+    {% if insertEm is defined %}
+    $this->em->close();
+    {% endif %}
+}
+
+    {% for method in methods %}
+        {{ method }}
+    {% endfor %}
+
+}
+{% endautoescape %}
