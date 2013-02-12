@@ -1,7 +1,7 @@
 {
     "name": "ee/testsgenerator-bundle",
     "type": "library",
-    "description": "test generator",
+    "description": "tests generator",
     "keywords": ["test","phpunit"],
     "homepage": "http://laboratorium.ee",
     "license": "MIT",
