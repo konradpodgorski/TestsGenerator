@@ -5,8 +5,20 @@
     * @todo   Implement test{{ ucfirstMethodName }}().
     */
     public function test{{ ucfirstMethodName }}() {
-        // Remove the following lines when you implement this test.
+        {% if methodPrivate == true or methodProtected == true %}
+${{ methodName }} = new \ReflectionMethod(
+            $this->object, '{{ methodName }}'
+        );
+        ${{ methodName }}->setAccessible(TRUE);
+        {% endif %}
+// Remove the following lines when you implement this test.
         $this->markTestIncomplete(
             'This test has not been implemented yet.'
         );
+        {% if methodPrivate == true or methodProtected == true %}
+$this->assertEquals(
+            'return value', ${{ methodName }}->invoke(new {{ fileClass }})
+        );
+        {% endif %}
+
     }

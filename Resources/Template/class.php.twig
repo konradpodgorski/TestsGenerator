@@ -14,7 +14,12 @@ class {{ testClassName }} extends WebTestCase
      */
     protected $object;
 
+    /**
+    * @var client;
+    */
+    protected $client;
     {% if insertEm is defined %}
+
 /**
      * @var \Doctrine\ORM\EntityManager
      */
@@ -27,13 +32,12 @@ class {{ testClassName }} extends WebTestCase
      */
     protected function setUp()
     {
-
     {% if classConstructorHasParm is defined %}
     {% if constructorParameters|length > 0 %}
 /**
         * Parameters:
     {% for paramter in constructorParameters %}
-    * ${{ paramter.name }}
+    * {{ paramter }}
     {% endfor %}
     */
     {% endif %}
@@ -49,6 +53,7 @@ static::$kernel = static::createKernel();
             ->getManager()
         ;
     {% endif %}
+    $this->client = static::createClient();
 }
 
     /**

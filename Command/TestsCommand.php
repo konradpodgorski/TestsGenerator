@@ -18,15 +18,16 @@ class TestsCommand extends ContainerAwareCommand
     protected function configure()
     {
         $this
-            ->setName('ee:test')
-            ->setDescription('EE Test Generator')
+            ->setName('ee:tests')
+            ->setDescription('EE Tests Generator')
             ->addArgument('bundle', InputArgument::REQUIRED, 'Bundle name')
+            ->addOption('test-private', null, InputOption::VALUE_OPTIONAL, 'Test private and protected method', true)
             ->addOption(
             'exclude',
             null,
             InputOption::VALUE_OPTIONAL | InputArgument::IS_ARRAY,
             'Exclude folders',
-            array( 'Tests', 'Entity', 'DependencyInjection', 'DataFixtures', 'Form', 'Security' )
+            $this->getExcludeList()
         );
     }
 
@@ -63,18 +64,17 @@ class TestsCommand extends ContainerAwareCommand
 
         $finder = new Finder();
         $dirs   = array();
-        //$finder->files()->in($bundle->getPath())->name('*.php')->exclude(array('Tests', 'DependencyInjection', 'DataFixtures', 'Flickr', 'Security', 'Validator', 'Services', 'Twig', 'Command', 'Facebook', 'Repository', 'Form'));
         foreach ($input->getOption('exclude') as $dir) {
             $dirs[] = $dir;
         }
+
         $finder->files()->in($bundle->getPath())->name('*.php')->exclude($dirs);
         $bundleTestPath = $bundle->getPath() . '/Tests/';
 
         $itemIndex = 0;
         foreach ($finder as $file) {
             $fileTestExist   = false;
-            $fileTestContent = '';
-            //katalog
+            //folder exist
             if (!$this->filesystem->exists($bundleTestPath . $file->getRelativePath())) {
                 $this->filesystem->mkdir($bundleTestPath . $file->getRelativePath());
             }
@@ -86,7 +86,11 @@ class TestsCommand extends ContainerAwareCommand
                 continue;
             }
 
-            //plik
+            if (0 === strlen($file->getRelativePath()) ) {
+                continue;
+            }
+
+            //file
             $testClassName = pathinfo($file->getRealpath())['filename'] . 'Test';
             $fileTestPath  = $bundleTestPath . $file->getRelativePath() . '/' . $testClassName . '.php';
             if (0 === strlen(pathinfo($file->getRelativePath())['filename'])) {
@@ -98,16 +102,17 @@ class TestsCommand extends ContainerAwareCommand
             }
 
             $methodsContent = Array();
-            //metody w klasie
+            //method in class
             foreach ($infoClass->getMethods() as $method) {
-                if (!$method->isConstructor() && !$method->isDestructor() && !$method->isAbstract(
-                ) && $method->class === $infoClass->getName()
-                ) {
-                    $methodName = $method->getName();
-                    //argumenty funkcji
-                    $methodParameters = Array();
+                if (!$method->isConstructor() && !$method->isDestructor() && !$method->isAbstract() && $method->class === $infoClass->getName()){
 
-                    //$method->getDocComment()
+                    if (true !== $input->getOption('test-private') && (true === $method->isPrivate() || true === $method->isProtected())) {
+                        continue;
+                    }
+
+                    $methodName = $method->getName();
+                    //method parameters
+                    $methodParameters = Array();
 
                     foreach ($method->getParameters() as $parameter) {
 
@@ -144,7 +149,7 @@ class TestsCommand extends ContainerAwareCommand
                             }
                         }
                     }
-                    //parametry z domyslnymi wartosciami
+
                     $methodParameters = implode(', ', $methodParameters);
 
                     $methodsContent['test' . ucfirst($methodName)] = $this->render(
@@ -155,18 +160,20 @@ class TestsCommand extends ContainerAwareCommand
                             'fileClass'          => $fileClass,
                             'methodName'         => $methodName,
                             'ucfirstMethodName'  => ucfirst($methodName),
-                            'methodParameters'   => $methodParameters
+                            'methodParameters'   => $methodParameters,
+                            'methodPrivate'      => $method->isPrivate(),
+                            'methodProtected'    => $method->isProtected()
                         )
                     );
                 }
             }
 
-            //jesli nie ma metod to przeskakujemy do nastepnego plik
+            //if method no exist continue loop
             if (0 === count($methodsContent)) {
                 continue;
             }
 
-            //czy istnienie juz plik z testem
+            //file with test class exist?
             if ($this->filesystem->exists($fileTestPath)) {
                 $fileTestExist = true;
                 list( $fileTestClassNamespace, $fileTestClass ) = $this->getClassFromFile($fileTestPath);
@@ -206,21 +213,6 @@ class TestsCommand extends ContainerAwareCommand
                     )] = 'class ' . $testClassName . ' extends WebTestCase';
                 }
 
-                //parsowanie use w pliku z testem
-                /*
-                 * use Doctrine\Common\Annotations;
-                $tokenParser = new \Doctrine\Common\Annotations\TokenParser(file_get_contents($fileTestPath));
-                $testClassUseStatements = $tokenParser->parseUseStatements($fileTestClassNamespace . '\\' . $fileTestClass);
-                if (false === array_key_exists(strtolower($fileClass), $testClassUseStatements))
-                {
-                    //TODO
-                    $output->writeln('<info>Do klasy '.$fileTestClass.' zaimportowano namespace '.$fileClassNamespace.'\\'.$fileClass.'</info>');
-                }
-                if (false === array_key_exists(strtolower('WebTestCase'), $testClassUseStatements)) {
-                    //TODO
-                    $output->writeln('<info>Do klasy '.$fileTestClass.' zaimportowano namespace Symfony\Bundle\FrameworkBundle\Test\WebTestCase</info>');
-                }
-                */
             }
 
             $classTemplateParameter = array(
@@ -231,13 +223,22 @@ class TestsCommand extends ContainerAwareCommand
                 'methods'            => $methodsContent
             );
 
-            //czy klasa ma argumenty w konstruktorze
+            //constructor have arguments?
             $constructor = $infoClass->getConstructor();
             if ($constructor) {
                 if ($constructor->getNumberOfParameters() > 0) {
                     $classTemplateParameter['classConstructorHasParm'] = true;
-                    $classTemplateParameter['constructorParameters']   = $constructor->getParameters();
-                    //TODO: sprawdzac parametry konsturktora i wypelniac fikcyjnymi danymi/mockami?
+                    $constructorParamters = array();
+                    foreach ($constructor->getParameters() as $parameter) {
+                        if ($this->ResolveParameterClassName($parameter)) {
+                            $constructorParamters[] =  $this->ResolveParameterClassName($parameter) . ' $' . $parameter->getName();
+                        }
+                        else {
+                            $constructorParamters[] = '$'.$parameter->getName();
+                        }
+                    }
+
+                    $classTemplateParameter['constructorParameters']   = $constructorParamters;
                 }
             }
 
@@ -250,13 +251,13 @@ class TestsCommand extends ContainerAwareCommand
                 $classTemplateParameter['insertEm'] = true;
             }
 
-            //zapisz
+            //save file
             if (true === $fileTestExist) {
                 $endMethodLine = $reflectedTest->getEndLine() - 1;
                 foreach ($methodsContent as $key => $method) {
-                    //sprawdzenie czy istnieje metoda w pliku testowym
+                    //check if method exist
                     if (!$reflectedTest->hasMethod($key)) {
-                        array_splice($testClassSrc, $$endMethodLine, 0, $method);
+                        array_splice($testClassSrc, $endMethodLine, 0, $method);
                         $$endMethodLine = $endMethodLine + count($method);
                         $output->writeln('<info>Add function ' . $key . ' to ' . $fileTestClass . '</info>');
                     }
@@ -349,6 +350,10 @@ class TestsCommand extends ContainerAwareCommand
         }
 
         return $bundle;
+    }
+
+    private function getExcludeList() {
+        return array( 'Tests', 'Entity', 'DependencyInjection', 'DataFixtures', 'Form', 'Security', 'Doctrine', 'EventListener', 'Listener', 'Resources', 'Twig', 'TwigExtension', 'Model' );
     }
 
 }
