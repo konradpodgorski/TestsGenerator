@@ -91,14 +91,17 @@ class TestsCommand extends ContainerAwareCommand
             }
 
             //file
-            $testClassName = pathinfo($file->getRealpath())['filename'] . 'Test';
+            $realPathInfo = pathinfo($file->getRealpath());
+
+            $testClassName = $realPathInfo['filename'] . 'Test';
             $fileTestPath  = $bundleTestPath . $file->getRelativePath() . '/' . $testClassName . '.php';
-            if (0 === strlen(pathinfo($file->getRelativePath())['filename'])) {
+
+            $relativePathInfo = pathinfo($file->getRelativePath());
+
+            if (0 === strlen($relativePathInfo['filename'])) {
                 $testClassNamespace = $bundle->getNamespace() . '\Tests';
             } else {
-                $testClassNamespace = $bundle->getNamespace() . '\Tests\\' . pathinfo(
-                    $file->getRelativePath()
-                )['filename'];
+                $testClassNamespace = $bundle->getNamespace() . '\Tests\\' . $relativePathInfo['filename'];
             }
 
             $methodsContent = Array();
@@ -204,7 +207,7 @@ class TestsCommand extends ContainerAwareCommand
                         true
                     )
                     ) {
-                        $output->writeln('<error>Pomijanie pliku ' . $file->getRealpath() . '</error>');
+                        $output->writeln('<error>Skipping file ' . $file->getRealpath() . '</error>');
                         continue;
                     }
 
@@ -228,22 +231,22 @@ class TestsCommand extends ContainerAwareCommand
             if ($constructor) {
                 if ($constructor->getNumberOfParameters() > 0) {
                     $classTemplateParameter['classConstructorHasParm'] = true;
-                    $constructorParamters = array();
+                    $constructorParameters = array();
                     foreach ($constructor->getParameters() as $parameter) {
                         if ($this->ResolveParameterClassName($parameter)) {
-                            $constructorParamters[] =  $this->ResolveParameterClassName($parameter) . ' $' . $parameter->getName();
+                            $constructorParameters[] =  $this->ResolveParameterClassName($parameter) . ' $' . $parameter->getName();
                         }
                         else {
-                            $constructorParamters[] = '$'.$parameter->getName();
+                            $constructorParameters[] = '$'.$parameter->getName();
                         }
                     }
 
-                    $classTemplateParameter['constructorParameters']   = $constructorParamters;
+                    $classTemplateParameter['constructorParameters']   = $constructorParameters;
                 }
             }
 
             if (in_array(
-                pathinfo($file->getRelativePathname())['dirname'],
+                $relativePathInfo['dirname'],
                 array( 'Controller', 'Entity', 'Repository' )
             )
             ) {
