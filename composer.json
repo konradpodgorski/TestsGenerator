@@ -23,7 +23,7 @@
     "require-dev": {
     },
     "autoload": {
-        "psr-0": { "EE\\TestGeneratorBundle": "" }
+        "psr-0": { "EE\\TestsGeneratorBundle": "" }
     },
-    "target-dir": "EE/TestGeneratorBundle"
+    "target-dir": "EE/TestsGeneratorBundle"
 }
