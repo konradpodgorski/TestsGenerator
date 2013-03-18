@@ -268,6 +268,7 @@ class TestsCommand extends ContainerAwareCommand
                 file_put_contents($fileTestPath, $testClassSrc);
             } else {
                 $this->renderFile($this->templateDir, 'class.php.twig', $fileTestPath, $classTemplateParameter);
+                $output->writeln('<info>Created file ' . $fileTestPath . '</info>');
             }
 
             $itemIndex++;
