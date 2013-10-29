@@ -20,10 +20,10 @@ class {{ testClassName }} extends WebTestCase
     protected $client;
     {% if insertEm is defined %}
 
-/**
+    /**
      * @var \Doctrine\ORM\EntityManager
      */
-    private $em;
+    protected $em;
     {% endif %}
 
     /**
@@ -45,15 +45,19 @@ class {{ testClassName }} extends WebTestCase
     {% else %}
     $this->object = new {{ fileClass }};
     {% endif %}
-    {% if insertEm is defined %}
-static::$kernel = static::createKernel();
-        static::$kernel->boot();
-        $this->em = static::$kernel->getContainer()
-            ->get('doctrine')
-            ->getManager()
-        ;
-    {% endif %}
     $this->client = static::createClient();
+    {% if insertEm is defined %}
+    $this->em = $this->client->getContainer()
+            ->get('doctrine')
+            ->getManager();
+
+        // drop and create schema
+        $this->regenerateDoctrineSchema();
+
+        // load fixtures here
+
+
+    {% endif %}
 }
 
     /**
@@ -68,6 +72,21 @@ static::$kernel = static::createKernel();
     {% endif %}
 }
 
+{% if insertEm is defined %}
+    /**
+     * @return null
+     */
+    protected function regenerateDoctrineSchema()
+    {
+        $metadatas = $this->em->getMetadataFactory()->getAllMetadata();
+
+        if (!empty($metadatas)) {
+            $tool = new \Doctrine\ORM\Tools\SchemaTool($this->em);
+            $tool->dropSchema($metadatas);
+            $tool->createSchema($metadatas);
+        }
+    }
+{% endif %}
     {% for method in methods %}
         {{ method }}
     {% endfor %}
