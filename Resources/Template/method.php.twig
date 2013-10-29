@@ -1,9 +1,9 @@
 
     /**
-    * @covers {{ fileClassNamespace }}\{{ fileClass }}::{{ methodName }}{% if methodParameters is defined %}({{ methodParameters }}){% endif %}
+     * @covers {{ fileClassNamespace }}\{{ fileClass }}::{{ methodName }}{% if methodParameters is defined %}({{ methodParameters }}){% endif %}
 
-    * @todo   Implement test{{ ucfirstMethodName }}().
-    */
+     * @todo   Implement test{{ ucfirstMethodName }}().
+     */
     public function test{{ ucfirstMethodName }}() {
         {% if methodPrivate == true or methodProtected == true %}
 ${{ methodName }} = new \ReflectionMethod(
